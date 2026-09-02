@@ -28,7 +28,7 @@ VALUES
 GO
 
 -- =========================================================
--- PARTE A2: INGESTA DE CLIENTES (Columnas corregidas: Nombres, Apellidos)
+-- PARTE A2: INGESTA DE CLIENTES (Columnas: Nombres, Apellidos)
 -- =========================================================
 INSERT INTO Operaciones.Clientes (DPI, Nombres, Apellidos, Correo) VALUES ('2540100000118', 'Lorena', 'Hernández', 'lorena.hernández1@correo.com');
 INSERT INTO Operaciones.Clientes (DPI, Nombres, Apellidos, Correo) VALUES ('2540100000135', 'Ana', 'Mérida', 'ana.mérida2@correo.com');
@@ -567,36 +567,31 @@ DROP TABLE #TmpCreditos;
 GO
 
 -- =========================================================
--- PARTE B: INTELIGENCIA FINANCIERA (REPORTES)
+-- PARTE B: INTELIGENCIA FINANCIERA (REPORTES SEGUNDO GUÍA)
 -- =========================================================
 
--- Reporte 1: Crédito otorgado y tasa promedio por estado
+-- Reporte 1: Riesgo Acumulado (SUM de Capital y AVG de Tasa por Estado)
 SELECT 
     Estado,
-    COUNT(*) AS TotalCreditos,
-    SUM(MontoCapital) AS CapitalTotalOtorgado,
+    SUM(MontoCapital) AS TotalCapitalPrestado,
     AVG(TasaInteresMensual) AS TasaInteresPromedio
 FROM Operaciones.Creditos
 GROUP BY Estado;
 
--- Reporte 2: Top 10 clientes con mayor monto acumulado
-SELECT TOP 10 
-    IdCliente,
-    COUNT(*) AS CantidadCreditos,
-    SUM(MontoCapital) AS TotalMontoPrestado
-FROM Operaciones.Creditos
-GROUP BY IdCliente
-ORDER BY TotalMontoPrestado DESC;
-
--- Reporte 3: Resumen por mes
+-- Reporte 2: Concentración Vehicular (COUNT préstamos por Marca del Vehículo con HAVING > 50)
 SELECT 
-    YEAR(FechaDesembolso) AS Anio,
-    MONTH(FechaDesembolso) AS Mes,
-    COUNT(*) AS CreditosDesembolsados,
-    SUM(MontoCapital) AS MontoTotalMes
-FROM Operaciones.Creditos
-GROUP BY YEAR(FechaDesembolso), MONTH(FechaDesembolso)
-ORDER BY Anio, Mes;
+    V.Marca,
+    COUNT(C.IdCredito) AS TotalPrestamos
+FROM Operaciones.Creditos C
+INNER JOIN Garantias.Vehiculos V ON C.IdVehiculo = V.IdVehiculo
+GROUP BY V.Marca
+HAVING COUNT(C.IdCredito) > 50;
+
+-- Reporte 3: Análisis de Extremos (Préstamo MAX y MIN)
+SELECT 
+    MAX(MontoCapital) AS PrestamoMaximoHistorico,
+    MIN(MontoCapital) AS PrestamoMinimoHistorico
+FROM Operaciones.Creditos;
 
 -- Conteo de Verificación
 SELECT COUNT(*) AS TotalRegistros FROM Operaciones.Creditos;
