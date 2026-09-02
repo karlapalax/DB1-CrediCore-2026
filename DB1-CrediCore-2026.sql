@@ -12,7 +12,6 @@ END
 GO
 
 USE CrediCoreDB;
-GO
 
 -- 2. ELIMINAR TABLAS SI YA EXISTEN (Para permitir reejecución limpia)
 IF OBJECT_ID('Operaciones.Creditos', 'U') IS NOT NULL DROP TABLE Operaciones.Creditos;
@@ -77,3 +76,20 @@ CREATE TABLE Operaciones.Creditos (
     CONSTRAINT CK_Creditos_TasaNoNegativa CHECK (TasaInteresMensual >= 0.00)
 );
 GO
+
+
+-- PRUEBA DE DESTRUCCIÓN 1: Vehículo antiguo (Año 2005)
+INSERT INTO Garantias.Vehiculos (Marca, Modelo, Anio, Color, NumeroTituloPropiedad, Placa, NumeroChasis)
+VALUES ('Toyota', 'Yaris', 2005, 'Rojo', 'TIT-999', 'P-999ZZZ', 'CHS-99999');
+GO
+
+-- PRUEBA DE DESTRUCCIÓN 2: Crédito con monto insuficiente (Q500.00 <= Q1000.00)
+INSERT INTO Operaciones.Creditos (IdCliente, IdVehiculo, MontoCapital, TasaInteresMensual)
+VALUES (1, 1, 500.00, 2.50);
+GO
+
+-- PRUEBA DE DESTRUCCIÓN 3: Crédito con tasa de interés negativa (-3.50%)
+INSERT INTO Operaciones.Creditos (IdCliente, IdVehiculo, MontoCapital, TasaInteresMensual)
+VALUES (1, 1, 5000.00, -3.50);
+GO
+
