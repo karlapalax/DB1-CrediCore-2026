@@ -633,3 +633,17 @@ SELECT COUNT(*) AS TotalVehiculos FROM Garantias.Vehiculos;
 
 -- Conteo de Verificación
 SELECT COUNT(*) AS TotalRegistros FROM Operaciones.Creditos;
+
+-- Muestra de 10 líneas del archivo plano (prestamos.txt)
+--1|1|6639.00|2.20|Activo--
+--2|2|11717.00|1.80|Atrasado--
+--3|1|6952.00|1.80|Activo--
+--4|5|44453.00|1.50|Atrasado--
+--5|5|32493.00|2.10|Activo--
+--6|3|5425.00|2.00|Atrasado--
+--7|3|23210.00|2.00|Activo--
+--8|3|11698.00|1.80|Activo--
+--9|3|27541.00|2.20|Pagado--
+--10|4|40142.00|1.80|Pagado--
+
+
