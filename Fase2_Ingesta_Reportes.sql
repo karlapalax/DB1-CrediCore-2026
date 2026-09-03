@@ -9,24 +9,59 @@ DELETE FROM Operaciones.Clientes;
 DBCC CHECKIDENT ('Operaciones.Clientes', RESEED, 0);
 GO
 
--- =========================================================
--- PARTE A1: INGESTA DE VEHÍCULOS (Lotes con GO)
--- =========================================================
+-- ============================================================================
+-- PARTE A1: INGESTA DE VEHÍCULOS (1,500 REGISTROS AUTOMATIZADOS)
+-- ============================================================================
+EXEC sp_executesql N'
+SET NOCOUNT ON;
 
--- Lote 1: Vehículos
-INSERT INTO Garantias.Vehiculos (Anio, Marca, Modelo, Color, NumeroTituloPropiedad, Placa, NumeroChasis)
-VALUES 
-(2018, 'Toyota', 'Yaris', 'Gris', 'TIT-L1-1', 'P-L1-1AAA', 'CHS-L1-1'),
-(2019, 'Honda', 'Civic', 'Negro', 'TIT-L1-2', 'P-L1-2BBB', 'CHS-L1-2');
+DECLARE @i INT = 1;
+DECLARE @Anio INT;
+DECLARE @Marca NVARCHAR(50);
+DECLARE @Modelo NVARCHAR(50);
+DECLARE @Color NVARCHAR(20);
+DECLARE @Titulo NVARCHAR(50);
+DECLARE @Placa NVARCHAR(20);
+DECLARE @Chasis NVARCHAR(50);
+
+WHILE @i <= 1500
+BEGIN
+    SET @Anio = 2015 + (@i % 9);
+    
+    SET @Marca = CASE (@i % 5)
+        WHEN 0 THEN ''Toyota''
+        WHEN 1 THEN ''Honda''
+        WHEN 2 THEN ''Mazda''
+        WHEN 3 THEN ''Hyundai''
+        ELSE ''Ford''
+    END;
+
+    SET @Modelo = CASE (@i % 5)
+        WHEN 0 THEN ''Corolla''
+        WHEN 1 THEN ''Civic''
+        WHEN 2 THEN ''CX-5''
+        WHEN 3 THEN ''Tucson''
+        ELSE ''Focus''
+    END;
+
+    SET @Color = CASE (@i % 4)
+        WHEN 0 THEN ''Blanco''
+        WHEN 1 THEN ''Negro''
+        WHEN 2 THEN ''Gris''
+        ELSE ''Azul''
+    END;
+
+    SET @Titulo = ''TIT-'' + RIGHT(''0000'' + CAST(@i AS VARCHAR(5)), 5);
+    SET @Placa  = ''P-'' + RIGHT(''0000'' + CAST(@i AS VARCHAR(5)), 5) + ''BBB'';
+    SET @Chasis = ''CHS-'' + RIGHT(''000000'' + CAST(@i AS VARCHAR(6)), 6);
+
+    INSERT INTO Garantias.Vehiculos (Anio, Marca, Modelo, Color, NumeroTituloPropiedad, Placa, NumeroChasis)
+    VALUES (@Anio, @Marca, @Modelo, @Color, @Titulo, @Placa, @Chasis);
+
+    SET @i = @i + 1;
+END;
+';
 GO
-
--- Lote 2: Vehículos
-INSERT INTO Garantias.Vehiculos (Anio, Marca, Modelo, Color, NumeroTituloPropiedad, Placa, NumeroChasis)
-VALUES 
-(2020, 'Mazda', 'CX-5', 'Rojo', 'TIT-L2-1', 'P-L2-1CCC', 'CHS-L2-1'),
-(2021, 'Hyundai', 'Tucson', 'Blanco', 'TIT-L2-2', 'P-L2-2EEE', 'CHS-L2-2');
-GO
-
 -- =========================================================
 -- PARTE A2: INGESTA DE CLIENTES (Columnas: Nombres, Apellidos)
 -- =========================================================
@@ -592,6 +627,9 @@ SELECT
     MAX(MontoCapital) AS PrestamoMaximoHistorico,
     MIN(MontoCapital) AS PrestamoMinimoHistorico
 FROM Operaciones.Creditos;
+
+-- Conteo de Verificación de Vehículos
+SELECT COUNT(*) AS TotalVehiculos FROM Garantias.Vehiculos;
 
 -- Conteo de Verificación
 SELECT COUNT(*) AS TotalRegistros FROM Operaciones.Creditos;
