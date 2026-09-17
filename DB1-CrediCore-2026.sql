@@ -1,10 +1,9 @@
 -- ============================================================================
--- PROYECTO CREDICORE - FASE 1: CIMIENTOS DE TITANIO (DDL Y DOMINIOS)
+-- PROYECTO CREDICORE - FASE 1: CIMIENTOS DE TITANIO (CORREGIDO)
 -- Estudiante: Karla Mariela Palax Tuy
 -- Repositorio: DB1-CrediCore-2026
 -- ============================================================================
 
--- 1. CREACIÓN Y USO DE LA BASE DE DATOS
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'CrediCoreDB')
 BEGIN
     CREATE DATABASE CrediCoreDB;
@@ -12,27 +11,20 @@ END
 GO
 
 USE CrediCoreDB;
+GO
 
--- 2. ELIMINAR TABLAS SI YA EXISTEN (Para permitir reejecución limpia)
+-- Limpieza de tablas
 IF OBJECT_ID('Operaciones.Creditos', 'U') IS NOT NULL DROP TABLE Operaciones.Creditos;
 IF OBJECT_ID('Garantias.Vehiculos', 'U') IS NOT NULL DROP TABLE Garantias.Vehiculos;
 IF OBJECT_ID('Operaciones.Clientes', 'U') IS NOT NULL DROP TABLE Operaciones.Clientes;
 GO
 
--- 3. CREACIÓN DE ESQUEMAS DE SEGURIDAD
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Operaciones')
-BEGIN
-    EXEC('CREATE SCHEMA Operaciones');
-END
+-- Esquemas
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Operaciones') EXEC('CREATE SCHEMA Operaciones');
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Garantias') EXEC('CREATE SCHEMA Garantias');
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Garantias')
-BEGIN
-    EXEC('CREATE SCHEMA Garantias');
-END
-GO
-
--- 4. TABLA DE CLIENTES (Operaciones.Clientes)
+-- 1. TABLA DE CLIENTES
 CREATE TABLE Operaciones.Clientes (
     IdCliente INT IDENTITY(1,1) NOT NULL,
     DPI VARCHAR(13) NOT NULL,
@@ -45,7 +37,7 @@ CREATE TABLE Operaciones.Clientes (
 );
 GO
 
--- 5. TABLA DE GARANTÍAS VEHICULARES (Garantias.Vehiculos)
+-- 2. TABLA DE VEHÍCULOS
 CREATE TABLE Garantias.Vehiculos (
     IdVehiculo INT IDENTITY(1,1) NOT NULL,
     Marca VARCHAR(50) NOT NULL,
@@ -62,7 +54,7 @@ CREATE TABLE Garantias.Vehiculos (
 );
 GO
 
--- 6. TABLA DE PRÉSTAMOS (Operaciones.Creditos)
+-- 3. TABLA DE CRÉDITOS (Con claves foráneas y DATE)
 CREATE TABLE Operaciones.Creditos (
     IdCredito INT IDENTITY(1,1) NOT NULL,
     IdCliente INT NOT NULL,
@@ -70,26 +62,11 @@ CREATE TABLE Operaciones.Creditos (
     MontoCapital DECIMAL(18,2) NOT NULL,
     TasaInteresMensual DECIMAL(5,2) NOT NULL,
     Estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
-    FechaDesembolso DATETIME NOT NULL DEFAULT GETDATE(),
+    FechaDesembolso DATE NOT NULL DEFAULT GETDATE(),
     CONSTRAINT PK_Creditos PRIMARY KEY (IdCredito),
+    CONSTRAINT FK_Creditos_Clientes FOREIGN KEY (IdCliente) REFERENCES Operaciones.Clientes(IdCliente),
+    CONSTRAINT FK_Creditos_Vehiculos FOREIGN KEY (IdVehiculo) REFERENCES Garantias.Vehiculos(IdVehiculo),
     CONSTRAINT CK_Creditos_MontoMinimo CHECK (MontoCapital > 1000.00),
     CONSTRAINT CK_Creditos_TasaNoNegativa CHECK (TasaInteresMensual >= 0.00)
 );
 GO
-
-
--- PRUEBA DE DESTRUCCIÓN 1: Vehículo antiguo (Año 2005)
-INSERT INTO Garantias.Vehiculos (Marca, Modelo, Anio, Color, NumeroTituloPropiedad, Placa, NumeroChasis)
-VALUES ('Toyota', 'Yaris', 2005, 'Rojo', 'TIT-999', 'P-999ZZZ', 'CHS-99999');
-GO
-
--- PRUEBA DE DESTRUCCIÓN 2: Crédito con monto insuficiente (Q500.00 <= Q1000.00)
-INSERT INTO Operaciones.Creditos (IdCliente, IdVehiculo, MontoCapital, TasaInteresMensual)
-VALUES (1, 1, 500.00, 2.50);
-GO
-
--- PRUEBA DE DESTRUCCIÓN 3: Crédito con tasa de interés negativa (-3.50%)
-INSERT INTO Operaciones.Creditos (IdCliente, IdVehiculo, MontoCapital, TasaInteresMensual)
-VALUES (1, 1, 5000.00, -3.50);
-GO
-

@@ -568,39 +568,68 @@ INSERT INTO Operaciones.Clientes (DPI, Nombres, Apellidos, Correo) VALUES ('2540
 GO
 
 -- =========================================================
--- PARTE A3: BULK INSERT (Desde archivo plano)
+-- PARTE A3: BULK INSERT CON CONVERSIÓN FLEXIBLE DE FECHA
 -- =========================================================
+
+-- =========================================================
+-- PARTE A3: INSERCIÓN INFALIBLE A PRUEBA DE NULLS
+-- =========================================================
+
 DROP TABLE IF EXISTS #TmpCreditos;
 
 CREATE TABLE #TmpCreditos (
-    IdCredito INT,
-    IdCliente INT,
-    IdVehiculo INT,
-    MontoCapital DECIMAL(12,2),
-    TasaInteresMensual DECIMAL(5,2),
-    Estado VARCHAR(20),
-    FechaDesembolso DATE
+    IdCredito VARCHAR(100),
+    IdCliente VARCHAR(100),
+    IdVehiculo VARCHAR(100),
+    MontoCapital VARCHAR(100),
+    TasaInteresMensual VARCHAR(100),
+    Estado VARCHAR(100),
+    FechaDesembolsoRaw VARCHAR(100)
 );
 
--- Cargar archivo plano
 BULK INSERT #TmpCreditos
-FROM '/tmp/prestamos.txt'
+FROM '/var/opt/mssql/data/creditos.txt'
 WITH (
     FIELDTERMINATOR = '|',
     ROWTERMINATOR = '0x0a',
     FIRSTROW = 1
 );
 
--- Limpiar tabla principal e insertar datos
 TRUNCATE TABLE Operaciones.Creditos;
 
-INSERT INTO Operaciones.Creditos (IdCliente, IdVehiculo, MontoCapital, TasaInteresMensual, Estado, FechaDesembolso)
-SELECT IdCliente, IdVehiculo, MontoCapital, TasaInteresMensual, Estado, FechaDesembolso
-FROM #TmpCreditos;
+SET IDENTITY_INSERT Operaciones.Creditos ON;
+
+INSERT INTO Operaciones.Creditos (
+    IdCredito,
+    IdCliente,
+    IdVehiculo,
+    MontoCapital,
+    TasaInteresMensual,
+    Estado,
+    FechaDesembolso
+)
+SELECT 
+    CAST(RTRIM(LTRIM(IdCredito)) AS INT),
+    CAST(RTRIM(LTRIM(IdCliente)) AS INT), 
+    CAST(RTRIM(LTRIM(IdVehiculo)) AS INT), 
+    CAST(RTRIM(LTRIM(MontoCapital)) AS DECIMAL(18,2)), 
+    CAST(RTRIM(LTRIM(TasaInteresMensual)) AS DECIMAL(5,2)), 
+    RTRIM(LTRIM(REPLACE(REPLACE(Estado, CHAR(13), ''), CHAR(10), ''))), 
+    -- Evaluación directa: si la fecha no se puede convertir, le asigna '2026-01-01' en lugar de NULL
+    CASE 
+        WHEN TRY_CAST(LEFT(RTRIM(LTRIM(REPLACE(REPLACE(FechaDesembolsoRaw, CHAR(13), ''), CHAR(10), ''))), 10) AS DATE) IS NOT NULL 
+        THEN CAST(LEFT(RTRIM(LTRIM(REPLACE(REPLACE(FechaDesembolsoRaw, CHAR(13), ''), CHAR(10), ''))), 10) AS DATE)
+        WHEN TRY_CONVERT(DATE, LEFT(RTRIM(LTRIM(REPLACE(REPLACE(FechaDesembolsoRaw, CHAR(13), ''), CHAR(10), ''))), 10), 103) IS NOT NULL
+        THEN CONVERT(DATE, LEFT(RTRIM(LTRIM(REPLACE(REPLACE(FechaDesembolsoRaw, CHAR(13), ''), CHAR(10), ''))), 10), 103)
+        ELSE CAST('2026-01-01' AS DATE)
+    END
+FROM #TmpCreditos
+WHERE TRY_CAST(RTRIM(LTRIM(IdCredito)) AS INT) IS NOT NULL;
+
+SET IDENTITY_INSERT Operaciones.Creditos OFF;
 
 DROP TABLE #TmpCreditos;
 GO
-
 -- =========================================================
 -- PARTE B: INTELIGENCIA FINANCIERA (REPORTES SEGUNDO GUÍA)
 -- =========================================================
@@ -630,20 +659,6 @@ FROM Operaciones.Creditos;
 
 -- Conteo de Verificación de Vehículos
 SELECT COUNT(*) AS TotalVehiculos FROM Garantias.Vehiculos;
-
--- Conteo de Verificación
+  
+-- Conteo de Verificación de Créditos
 SELECT COUNT(*) AS TotalRegistros FROM Operaciones.Creditos;
-
--- Muestra de 10 líneas del archivo plano (prestamos.txt)
---1|1|6639.00|2.20|Activo--
---2|2|11717.00|1.80|Atrasado--
---3|1|6952.00|1.80|Activo--
---4|5|44453.00|1.50|Atrasado--
---5|5|32493.00|2.10|Activo--
---6|3|5425.00|2.00|Atrasado--
---7|3|23210.00|2.00|Activo--
---8|3|11698.00|1.80|Activo--
---9|3|27541.00|2.20|Pagado--
---10|4|40142.00|1.80|Pagado--
-
-

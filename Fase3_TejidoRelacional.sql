@@ -1,15 +1,17 @@
 -- ============================================================================
 -- PROYECTO CREDICORE - FASE 3: EL TEJIDO RELACIONAL Y ANÁLISIS ESTRATÉGICO
+-- Estudiante: Karla Mariela Palax Tuy
+-- Repositorio: DB1-CrediCore-2026
 -- ============================================================================
 USE CrediCoreDB;
 GO
 
 -- 1. ELIMINAR RESTRICCIONES SI YA EXISTEN (Para evitar conflictos al reejecutar)
-IF OBJECT_ID('Operaciones.FK_Creditos_Clientes', 'F') IS NOT NULL
+IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Creditos_Clientes')
     ALTER TABLE Operaciones.Creditos DROP CONSTRAINT FK_Creditos_Clientes;
 GO
 
-IF OBJECT_ID('Operaciones.FK_Creditos_Vehiculos', 'F') IS NOT NULL
+IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Creditos_Vehiculos')
     ALTER TABLE Operaciones.Creditos DROP CONSTRAINT FK_Creditos_Vehiculos;
 GO
 
@@ -23,12 +25,10 @@ ALTER TABLE Operaciones.Creditos
 ADD CONSTRAINT FK_Creditos_Vehiculos 
 FOREIGN KEY (IdVehiculo) REFERENCES Garantias.Vehiculos(IdVehiculo);
 GO
-
 -- 3. LA PRUEBA DE DESTRUCCIÓN OBLIGATORIA
--- Intentamos borrar directamente al cliente con IdCliente = 1
--- (Como tiene créditos asociados, ¡aquí debe saltar el error rojo de seguridad!)
 DELETE FROM Operaciones.Clientes WHERE IdCliente = 1;
 GO
+
 -- ============================================================================
 -- PARTE B: RECONSTRUCCIÓN DE LA REALIDAD (JOINs)
 -- ============================================================================
@@ -62,14 +62,13 @@ GO
 -- PARTE C: EL CEREBRO ANALÍTICO (Subconsultas)
 -- ============================================================================
 
--- 0. AGREGAR DATOS DE PRUEBA (Vehículo 2011 y su crédito) para que el IN devuelva filas
+-- 0. AGREGAR DATOS DE PRUEBA (Vehículo 2011 y su crédito para el test con IN)
 INSERT INTO Garantias.Vehiculos (Anio, Marca, Modelo, Color, NumeroTituloPropiedad, Placa, NumeroChasis)
 VALUES (2011, 'Toyota', 'Hilux', 'Gris', 'TIT-2011-TEST', 'P-999ZZZ', 'CHS-999999');
 GO
 
--- Asignamos un crédito a ese vehículo de prueba usando el cliente 1
-INSERT INTO Operaciones.Creditos (IdCliente, IdVehiculo, MontoCapital, TasaInteresMensual, Estado)
-VALUES (1, SCOPE_IDENTITY(), 15000.00, 2.00, 'Activo');
+INSERT INTO Operaciones.Creditos (IdCliente, IdVehiculo, MontoCapital, TasaInteresMensual, Estado, FechaDesembolso)
+VALUES (1, SCOPE_IDENTITY(), 15000.00, 2.00, 'Activo', GETDATE());
 GO
 
 -- 1. El Filtro Dinámico (Créditos con capital mayor al promedio histórico)
@@ -83,7 +82,6 @@ WHERE MontoCapital > (SELECT AVG(MontoCapital) FROM Operaciones.Creditos);
 GO
 
 -- 2. Patrones Anidados (Clientes con vehículos del año 2011 hacia atrás usando IN)
--- La evaluación del año se realiza en la subconsulta interna
 SELECT 
     C.Nombres + ' ' + C.Apellidos AS NombreCliente,
     CR.IdCredito
