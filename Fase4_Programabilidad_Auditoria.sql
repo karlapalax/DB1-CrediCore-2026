@@ -48,6 +48,7 @@ IF OBJECT_ID('Operaciones.SP_ProcesarPago', 'P') IS NOT NULL
     DROP PROCEDURE Operaciones.SP_ProcesarPago;
 GO
 
+-- Pruebas 
 CREATE PROCEDURE Operaciones.SP_ProcesarPago
     @IdCredito INT,
     @MontoAbono DECIMAL(18,2)
@@ -152,7 +153,13 @@ BEGIN
 END;
 GO
 SELECT * FROM Operaciones.vw_AtencionAlCliente;
+
+-- Prueba exitosa
 EXEC Operaciones.SP_ProcesarPago @IdCredito = 2, @MontoAbono = 500.00;
+
+--Prueba de Error
+EXEC Operaciones.SP_ProcesarPago @IdCredito = 2, @MontoAbono = 9999999.00;
+
 -- Modificas la tasa de un préstamo manualmente:
 UPDATE Operaciones.Creditos
 SET TasaInteresMensual = 1.25
